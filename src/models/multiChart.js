@@ -88,8 +88,6 @@ nv.models.multiChart = function() {
             x   .domain(d3.extent(d3.merge(series1.concat(series2)), function(d) { return d.x } ))
                 .range([0, availableWidth]);
 
-            var test = x.invert(500);
-
             var wrap = container.selectAll('g.wrap.multiChart').data([data]);
             var gEnter = wrap.enter().append('g').attr('class', 'wrap nvd3 multiChart').append('g');
 
