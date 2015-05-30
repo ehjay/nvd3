@@ -88,6 +88,8 @@ nv.models.multiChart = function() {
             x   .domain(d3.extent(d3.merge(series1.concat(series2)), function(d) { return d.x } ))
                 .range([0, availableWidth]);
 
+            var test = x.invert(500);
+
             var wrap = container.selectAll('g.wrap.multiChart').data([data]);
             var gEnter = wrap.enter().append('g').attr('class', 'wrap nvd3 multiChart').append('g');
 
@@ -330,9 +332,7 @@ nv.models.multiChart = function() {
                 xDown,
                 yDown,
                 xDrag,
-                yDrag,
-                xUp,
-                yUp;
+                yDrag;
 
             container.on('mousedown', function(evt) {
               var coords = d3.mouse(this);
@@ -389,6 +389,18 @@ nv.models.multiChart = function() {
             container.on('mouseup', function(evt) {
               isMouseDown = false;
               removeZoomRectangle();
+
+              var xDomainDown = x.invert(xDown),
+                  yDomainDown = yScale1.invert(yDown),
+                  xDomainUp = x.invert(xDrag),
+                  yDomainUp = yScale1.invert(yDrag),
+                  xMin = d3.min([xDomainDown, xDomainUp]),
+                  xMax = d3.max([xDomainDown, xDomainUp]),
+                  yMin = d3.min([yDomainDown, yDomainUp]),
+                  yMax = d3.max([yDomainDown, yDomainUp]);
+
+              x.domain([xMin, xMax]);
+              yScale1.domain([yMin, yMax]);
             });
 
         });
