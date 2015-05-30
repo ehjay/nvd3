@@ -326,6 +326,71 @@ nv.models.multiChart = function() {
                 tooltip.position({top: d3.event.pageY, left: d3.event.pageX})();
             });
 
+            var isMouseDown,
+                xDown,
+                yDown,
+                xDrag,
+                yDrag,
+                xUp,
+                yUp;
+
+            container.on('mousedown', function(evt) {
+              var coords = d3.mouse(this);
+
+              xDown = coords[0],
+              yDown = coords[1];
+
+              isMouseDown = true;
+            });
+
+            function clipToBounds(val, min, max) {
+              if(val < min) {
+                return min;
+              } else if (val > max) {
+                return max;
+              } else {
+                return val;
+              }
+            }
+
+            function removeZoomRectangle() {
+              container.selectAll('rect.nv-zoom-selection').remove();
+            }
+
+            container.on('mousemove', function(evt) {
+              if (!isMouseDown)
+                return;
+
+              var coords = d3.mouse(this),
+                  xMin,
+                  yMin,
+                  xMax,
+                  yMax;
+
+              xDrag = clipToBounds(coords[0], 0, availableWidth);
+              yDrag = clipToBounds(coords[1], 0, availableHeight);
+
+              xMin = d3.min([xDown, xDrag]);
+              yMin = d3.min([yDown, yDrag]);
+
+              xMax = d3.max([xDown, xDrag]);
+              yMax = d3.max([yDown, yDrag]);
+
+              removeZoomRectangle();
+
+              container.append('rect')
+                  .attr('x', xMin)
+                  .attr('y', yMin)
+                  .attr('width', xMax - xMin)
+                  .attr('height', yMax - yMin )
+                  .attr('class', 'nv-zoom-selection');
+            });
+
+            container.on('mouseup', function(evt) {
+              isMouseDown = false;
+              removeZoomRectangle();
+            });
+
         });
 
         return chart;
