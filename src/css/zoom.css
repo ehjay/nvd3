@@ -1,0 +1,13 @@
+g.zoomResetButton rect{
+  fill: rgb(50, 75, 100);
+  opacity: 1;
+}
+
+g.zoomResetButton rect:hover{
+  fill: rgb(100, 150, 200);
+  opacity: 0.75;
+}
+
+g.zoomResetButton text{
+  fill: white;
+}
