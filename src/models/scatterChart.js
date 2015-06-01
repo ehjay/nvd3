@@ -149,14 +149,10 @@ nv.models.scatterChart = function() {
             gEnter.append('g').attr('class', 'nv-regressionLinesWrap');
             gEnter.append('g').attr('class', 'nv-distWrap');
             gEnter.append('g').attr('class', 'nv-legendWrap');
-
-            gEnter.selectAll('.nv-resetZoom').remove();
-            gEnter.append('g')
-                .attr('class', 'nv-resetZoom')
-                .attr('onmouseup', 'nv.utils.resetZoom()');
+            gEnter.append('g').attr('class', 'nv-resetZoom').attr('onmouseup', 'nv.utils.resetZoom()');
 
             // Zoom
-            gEnter.select('.nv-resetZoom').append('rect')
+            g.select('.nv-resetZoom').append('rect')
                 .attr('x', 10)
                 .attr('y', 7)
                 .attr('rx', 5)
@@ -164,17 +160,15 @@ nv.models.scatterChart = function() {
                 .attr('width', 80)
                 .attr('height', 20);
 
-            gEnter.select('.nv-resetZoom').append('text')
+            g.select('.nv-resetZoom').append('text')
                 .attr('x', 15)
                 .attr('y', 20)
                 .text('Reset Zoom');
 
             if (zoomDomains.x && zoomDomains.y) {
-                var reset = gEnter.select('.nv-resetZoom')
-                
-                reset.style('opacity', 1);
+                g.select('.nv-resetZoom').style('opacity', 1);
             } else {
-                //gEnter.select('.nv-resetZoom').style('opacity', 0);
+                g.select('.nv-resetZoom').style('opacity', 0);
             }
 
             if (rightAlignYAxis) {
@@ -335,6 +329,11 @@ nv.models.scatterChart = function() {
                 chart.update();
             });
 
+            dispatch.on('resetZoom', function(evt) {
+              zoomDomains = { x: null, y: null};
+              chart.update();
+            });
+
             // mouseover needs availableHeight so we just keep scatter mouse events inside the chart block
             scatter.dispatch.on('elementMouseout.tooltip', function(evt) {
                 tooltip.hidden(true);
@@ -433,11 +432,6 @@ nv.models.scatterChart = function() {
 
               chart.update();
             });
-
-            window.nv.resetScatterZoom = function(evt) {
-              zoomDomains = { 'x': null, 'y': null};
-              chart.update();
-            }
 
             //store old scales for use in transitions on update
             x0 = x.copy();
