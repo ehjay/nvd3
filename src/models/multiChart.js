@@ -27,6 +27,8 @@ nv.models.multiChart = function() {
         yScale1 = d3.scale.linear(),
         yScale2 = d3.scale.linear(),
 
+        zoomDomains = { x: null, y: null},
+
         lines1 = nv.models.line().yScale(yScale1),
         lines2 = nv.models.line().yScale(yScale2),
 
@@ -85,8 +87,13 @@ nv.models.multiChart = function() {
                     })
                 });
 
-            x   .domain(d3.extent(d3.merge(series1.concat(series2)), function(d) { return d.x } ))
-                .range([0, availableWidth]);
+            if (zoomDomains.x) {
+              x.domain(zoomDomains.x);
+            } else {
+              x.domain(d3.extent(d3.merge(series1.concat(series2)), function(d) { return d.x } ))
+            }
+            
+            x.range([0, availableWidth]);
 
             var wrap = container.selectAll('g.wrap.multiChart').data([data]);
             var gEnter = wrap.enter().append('g').attr('class', 'wrap nvd3 multiChart').append('g');
@@ -101,8 +108,27 @@ nv.models.multiChart = function() {
             gEnter.append('g').attr('class', 'stack1Wrap');
             gEnter.append('g').attr('class', 'stack2Wrap');
             gEnter.append('g').attr('class', 'legendWrap');
+            gEnter.append('g').attr('class', 'zoomResetButton')
+                  .attr('onmouseup', 'nv.resetZoom(evt)')
+                  .style('visibility', 'hidden');
 
             var g = wrap.select('g');
+
+            g.select('.zoomResetButton').append('rect')
+             .attr('x', 10)
+             .attr('y', 7)
+             .attr('rx', 5)
+             .attr('ry', 5)
+             .attr('width', 80)
+             .attr('height', 20);
+
+            g.select('.zoomResetButton').append('text')
+             .attr('x', 15)
+             .attr('y', 20)
+             .text('Reset Zoom');
+
+            if(zoomDomains.x && zoomDomains.y)
+              g.select('.zoomResetButton').style('visibility', 'visible');
 
             var color_array = data.map(function(d,i) {
                 return data[i].color || color(d, i);
@@ -181,8 +207,13 @@ nv.models.multiChart = function() {
                 return a.map(function(aVal,i){return {x: aVal.x, y: aVal.y + b[i].y}})
             }).concat([{x:0, y:0}]) : [];
 
-            yScale1 .domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1), function(d) { return d.y } ))
-                .range([0, availableHeight]);
+            if (zoomDomains.y) {
+              yScale1.domain(zoomDomains.y);
+            } else {
+              yScale1.domain(yDomain1 || d3.extent(d3.merge(series1).concat(extraValue1), function(d) { return d.y } ))
+            }
+
+            yScale1.range([0, availableHeight]);
 
             yScale2 .domain(yDomain2 || d3.extent(d3.merge(series2).concat(extraValue2), function(d) { return d.y } ))
                 .range([0, availableHeight]);
@@ -397,9 +428,20 @@ nv.models.multiChart = function() {
                   yMin = d3.min([yDomainDown, yDomainUp]),
                   yMax = d3.max([yDomainDown, yDomainUp]);
 
-              x.domain([xMin, xMax]);
-              yScale1.domain([yMin, yMax]);
+              // if the box is very small, assume the user is just trying to click something on the chart
+              if (Math.abs(xDrag - xDown) < 5 || Math.abs(yDrag - yDown) < 5)
+               return;
+
+              zoomDomains.x = [xMin, xMax];
+              zoomDomains.y = [yMin, yMax];
+
+              chart.update();
             });
+
+            window.nv.resetZoom = function(evt) {
+              zoomDomains = { 'x': null, 'y': null};
+              chart.update();
+            }
 
         });
 
