@@ -637,3 +637,12 @@ nv.utils.noData = function(chart, container) {
         .text(function(t){ return t; });
 };
 
+/*
+Reset the zoom level on a chart
+*/
+nv.utils.resetZoom = function() {
+  var dispatch = d3.dispatch('resetZoom');
+
+  dispatch.resetZoom();
+}
+

@@ -30,9 +30,10 @@ nv.models.scatterChart = function() {
         , rightAlignYAxis = false
         , state = nv.utils.state()
         , defaultState = null
-        , dispatch = d3.dispatch('stateChange', 'changeState', 'renderEnd')
+        , dispatch = d3.dispatch('stateChange', 'changeState', 'renderEnd', 'resetZoom')
         , noData       = null
         , duration = 250
+        , zoomDomains = { x: null, y: null}
         ;
 
     scatter.xScale(x).yScale(y);
@@ -74,6 +75,7 @@ nv.models.scatterChart = function() {
                 });
         }
     };
+
 
     function chart(selection) {
         renderWatch.reset();
@@ -147,6 +149,33 @@ nv.models.scatterChart = function() {
             gEnter.append('g').attr('class', 'nv-regressionLinesWrap');
             gEnter.append('g').attr('class', 'nv-distWrap');
             gEnter.append('g').attr('class', 'nv-legendWrap');
+
+            gEnter.selectAll('.nv-resetZoom').remove();
+            gEnter.append('g')
+                .attr('class', 'nv-resetZoom')
+                .attr('onmouseup', 'nv.utils.resetZoom()');
+
+            // Zoom
+            gEnter.select('.nv-resetZoom').append('rect')
+                .attr('x', 10)
+                .attr('y', 7)
+                .attr('rx', 5)
+                .attr('ry', 5)
+                .attr('width', 80)
+                .attr('height', 20);
+
+            gEnter.select('.nv-resetZoom').append('text')
+                .attr('x', 15)
+                .attr('y', 20)
+                .text('Reset Zoom');
+
+            if (zoomDomains.x && zoomDomains.y) {
+                var reset = gEnter.select('.nv-resetZoom')
+                
+                reset.style('opacity', 1);
+            } else {
+                //gEnter.select('.nv-resetZoom').style('opacity', 0);
+            }
 
             if (rightAlignYAxis) {
                 g.select(".nv-y.nv-axis")
@@ -280,6 +309,10 @@ nv.models.scatterChart = function() {
                     .call(distY);
             }
 
+            if (zoomDomains.x && zoomDomains.y) {
+                x.domain(zoomDomains.x);
+                y.domain(zoomDomains.y);
+            }
             //============================================================
             // Event Handling/Dispatching (in chart's scope)
             //------------------------------------------------------------
@@ -318,6 +351,93 @@ nv.models.scatterChart = function() {
                     .attr('x2', evt.pos.left + distX.size() - margin.left);
                 tooltip.position(evt.pos).data(evt).hidden(false);
             });
+
+            // Zoom events
+            var isMouseDown,
+                xDown,
+                yDown,
+                xDrag,
+                yDrag;
+
+            container.on('mousedown', function(evt) {
+              var coords = d3.mouse(this);
+
+              xDown = coords[0],
+              yDown = coords[1];
+
+              isMouseDown = true;
+            });
+
+            function clipToBounds(val, min, max) {
+              if(val < min) {
+                return min;
+              } else if (val > max) {
+                return max;
+              } else {
+                return val;
+              }
+            }
+
+            function removeZoomRectangle() {
+              container.selectAll('rect.nv-zoom-selection').remove();
+            }
+
+            container.on('mousemove', function(evt) {
+              if (!isMouseDown)
+                return;
+
+              var coords = d3.mouse(this),
+                  xMin,
+                  yMin,
+                  xMax,
+                  yMax;
+
+              xDrag = clipToBounds(coords[0], 0, availableWidth);
+              yDrag = clipToBounds(coords[1], 0, availableHeight);
+
+              xMin = d3.min([xDown, xDrag]);
+              yMin = d3.min([yDown, yDrag]);
+
+              xMax = d3.max([xDown, xDrag]);
+              yMax = d3.max([yDown, yDrag]);
+
+              removeZoomRectangle();
+
+              container.append('rect')
+                  .attr('x', xMin)
+                  .attr('y', yMin)
+                  .attr('width', xMax - xMin)
+                  .attr('height', yMax - yMin )
+                  .attr('class', 'nv-zoom-selection');
+            });
+
+            container.on('mouseup', function(evt) {
+              isMouseDown = false;
+              removeZoomRectangle();
+
+              var xDomainDown = x.invert(xDown),
+                  yDomainDown = y.invert(yDown),
+                  xDomainUp = x.invert(xDrag),
+                  yDomainUp = y.invert(yDrag),
+                  xMin = d3.min([xDomainDown, xDomainUp]),
+                  xMax = d3.max([xDomainDown, xDomainUp]),
+                  yMin = d3.min([yDomainDown, yDomainUp]),
+                  yMax = d3.max([yDomainDown, yDomainUp]);
+
+              // if the box is very small, assume the user is just trying to click something on the chart
+              if (Math.abs(xDrag - xDown) < 5 || Math.abs(yDrag - yDown) < 5)
+               return;
+
+              zoomDomains.x = [xMin, xMax];
+              zoomDomains.y = [yMin, yMax];
+
+              chart.update();
+            });
+
+            window.nv.resetScatterZoom = function(evt) {
+              zoomDomains = { 'x': null, 'y': null};
+              chart.update();
+            }
 
             //store old scales for use in transitions on update
             x0 = x.copy();
